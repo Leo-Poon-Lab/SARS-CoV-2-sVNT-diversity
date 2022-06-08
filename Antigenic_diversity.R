@@ -358,6 +358,7 @@ df_boot_rst <- left_join(df_boot_rst, df_meta)
 df_boot_rst$parent_group2 <- factor(df_boot_rst$parent_group2, levels=parent_groups_all)
 df_boot_rst <- df_boot_rst %>% arrange(parent_group2)
 df_boot_rst$group <- factor(df_boot_rst$group, levels=unique(df_boot_rst$group))
+df_boot_rst$group_rename <- factor(df_boot_rst$group_rename, levels=unique(df_boot_rst$group_rename))
 
 colors_t <- scico(length(unique(df_boot_rst$parent_group2)), palette = 'batlow')
 
@@ -502,7 +503,7 @@ plot_2d <- function(df, x_var, y_var) {
 		geom_segment(aes_string(x=x_ci_l, xend=x_ci_h, y=y_e, yend=y_e, color="parent_group2"), alpha=0.6, size=0.5)+
 		geom_point(aes_string(x=x_e, y=y_e, color="parent_group2"), alpha=0.8, shape=1, size=2, data=. %>% filter(open_circle))+
 		geom_point(aes_string(x=x_e, y=y_e, color="parent_group2", fill="parent_group2"), alpha=0.8, shape=16, size=2, data=. %>% filter(!open_circle), show.legend=FALSE)+
-		geom_text_repel(aes_string(x=x_e, y=y_e, color="parent_group2", label="group"), bg.color = "white", bg.r = 0.05, size=2, segment.size=0.3, segment.alpha=0.9, segment.color="black", arrow = arrow(length = unit(0.01, "npc")), point.padding=0.28, box.padding=0.45, show.legend=FALSE, max.overlaps = Inf, force=10)+
+		geom_text_repel(aes_string(x=x_e, y=y_e, color="parent_group2", label="group_rename"), bg.color = "white", bg.r = 0.05, size=2, segment.size=0.3, segment.alpha=0.9, segment.color="black", arrow = arrow(length = unit(0.01, "npc")), point.padding=0.28, box.padding=0.45, show.legend=FALSE, max.overlaps = Inf, force=10)+
 		scale_fill_manual(name="Group", values=colors_t)+
 		scale_color_manual(name="Group", values=colors_t)+
 		ylab(expression("RBD cross-reactivity ("~pi~")"))+
