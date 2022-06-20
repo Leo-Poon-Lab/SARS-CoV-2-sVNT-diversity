@@ -8,14 +8,16 @@ library(parallel)
 library(scico)
 library(ggrepel)
 library(patchwork)
+library(ggplot2)
+library(ggtext)
 
 # read data
 df_meta <- read_csv("../data/sample_groups.csv")
 df_meta <- df_meta %>% filter(!grepl("Don’t work on these", note))
 df_meta <- df_meta %>% filter(!grepl("D700 Rec", group))
-df_meta$parent_group2 <- gsub(" +\\+", "\\+", df_meta$parent_group2)
-df_meta$parent_group2 <- gsub("\\+ +", "+", df_meta$parent_group2)
-df_meta$parent_group2 <- gsub("\\+", " \\+ ", df_meta$parent_group2)
+# df_meta$parent_group3 <- gsub(" +\\+", "\\+", df_meta$parent_group3)
+# df_meta$parent_group3 <- gsub("\\+ +", "+", df_meta$parent_group3)
+# df_meta$parent_group3 <- gsub("\\+", " \\+ ", df_meta$parent_group3)
 
 df_inhibition <- read_excel("../data/data_inhibition.xlsx")
 df_inhibition <- df_inhibition %>% pivot_longer(-c(group, sample), names_to = "RBD")
@@ -26,7 +28,7 @@ df_inhibition$Response <- ifelse(df_inhibition$value<20, "negative", "positive")
 # double check
 RBDs_all <- unique(df_inhibition$RBD)
 groups_all <- unique(df_meta$group)
-parent_groups_all <- unique(df_meta$parent_group2)
+parent_groups_all <- unique(df_meta$parent_group3[!is.na(df_meta$parent_group3)])
 stopifnot(all(df_inhibition$group %in% groups_all))
 
 # first let's test the negative controls:
@@ -271,21 +273,21 @@ write_tsv(df_boot_rst, "../results/df_boot_rst_sarbecov.tsv")
 df_boot_rst <- read_tsv("../results/df_boot_rst_full.tsv")
 df_boot_rst <- df_boot_rst %>% mutate_at(vars(-group), as.numeric)
 df_boot_rst <- left_join(df_boot_rst, df_meta)
-df_boot_rst$parent_group2 <- factor(df_boot_rst$parent_group2, levels=parent_groups_all)
-df_boot_rst <- df_boot_rst %>% arrange(parent_group2)
+df_boot_rst$parent_group3 <- factor(df_boot_rst$parent_group3, levels=parent_groups_all)
+df_boot_rst <- df_boot_rst %>% arrange(parent_group3)
 df_boot_rst$group <- factor(df_boot_rst$group, levels=unique(df_boot_rst$group))
 
-colors_t <- scico(length(unique(df_boot_rst$parent_group2)), palette = 'batlow')
+colors_t <- scico(length(unique(df_boot_rst$parent_group3)), palette = 'batlow')
 
 p0 <- ggplot(df_boot_rst, aes(x=group)) +
 	# geom_point(aes())+
-	geom_pointrange(aes(y=e_mean_res, ymin=ci_mean_res_low, ymax=ci_mean_res_high, fill=parent_group2), size=0.8, shape=21, stroke=0.6)+
+	geom_pointrange(aes(y=e_mean_res, ymin=ci_mean_res_low, ymax=ci_mean_res_high, fill=parent_group3), size=0.8, shape=21, stroke=0.6)+
 	# geom_point(aes(y=e_mean_pos_res), size=2, shape=21)+
 	scale_x_discrete(expand=c(0,1.5), drop=F) +
 	ylab("Average %inhibition of responses")+
 	# scale_color_manual(name="Group", values=colors_t)+
 	scale_fill_manual(name="Group", values=colors_t)+
-	# facet_wrap(vars(parent_group2), nrow=3, scales="free_x")+
+	# facet_wrap(vars(parent_group3), nrow=3, scales="free_x")+
 	theme_bw()+
 	xlab("")+
 	theme(axis.text.x = element_text(angle = 30, vjust = 0.8, hjust = 1), legend.position = "top")+
@@ -295,13 +297,13 @@ ggsave("../results/Mean_inhibition_responses_full.pdf", width = 8, height=6)
 
 p1 <- ggplot(df_boot_rst, aes(x=group)) +
 	# geom_point(aes())+
-	geom_pointrange(aes(y=e_mean_pos_res, ymin=ci_mean_pos_res_low, ymax=ci_mean_pos_res_high, fill=parent_group2), size=0.8, shape=21, stroke=0.6)+
+	geom_pointrange(aes(y=e_mean_pos_res, ymin=ci_mean_pos_res_low, ymax=ci_mean_pos_res_high, fill=parent_group3), size=0.8, shape=21, stroke=0.6)+
 	# geom_point(aes(y=e_mean_pos_res), size=2, shape=21)+
 	scale_x_discrete(expand=c(0,1.5), drop=F) +
 	ylab("Average %inhibition of positive responses")+
 	# scale_color_manual(name="Group", values=colors_t)+
 	scale_fill_manual(name="Group", values=colors_t)+
-	# facet_wrap(vars(parent_group2), nrow=3, scales="free_x")+
+	# facet_wrap(vars(parent_group3), nrow=3, scales="free_x")+
 	theme_bw()+
 	xlab("")+
 	theme(axis.text.x = element_text(angle = 30, vjust = 0.8, hjust = 1), legend.position = "top")+
@@ -311,7 +313,7 @@ ggsave("../results/Mean_inhibition_positive_responses_full.pdf", width = 8, heig
 
 p2 <- ggplot(df_boot_rst, aes(x=group)) +
 	# geom_point(aes())+
-	geom_pointrange(aes(y=e_hs, ymin=ci_hs_low, ymax=ci_hs_high, fill=parent_group2), size=0.8, shape=21, stroke=0.6)+
+	geom_pointrange(aes(y=e_hs, ymin=ci_hs_low, ymax=ci_hs_high, fill=parent_group3), size=0.8, shape=21, stroke=0.6)+
 	scale_x_discrete(expand=c(0,1.5), drop=F) +
 	ylab("Shannon entropy")+
 	scale_fill_manual(name="Group", values=colors_t)+
@@ -324,7 +326,7 @@ ggsave("../results/hs_full.pdf", width = 8, height=6)
 
 p3 <- ggplot(df_boot_rst, aes(x=group)) +
 	# geom_point(aes())+
-	geom_pointrange(aes(y=e_hpi, ymin=ci_hpi_low, ymax=ci_hpi_high, fill=parent_group2), size=0.8, shape=21, stroke=0.6)+
+	geom_pointrange(aes(y=e_hpi, ymin=ci_hpi_low, ymax=ci_hpi_high, fill=parent_group3), size=0.8, shape=21, stroke=0.6)+
 	scale_x_discrete(expand=c(0,1.5), drop=F) +
 	ylab(expression("RBD cross-reactivity ("~pi~")"))+
 	scale_fill_manual(name="Group", values=colors_t)+
@@ -355,16 +357,16 @@ df_boot_rst1$RBDs <- "Sarbecoviruses"
 df_boot_rst <- bind_rows(df_boot_rst0, df_boot_rst1)
 df_boot_rst <- df_boot_rst %>% mutate_at(vars(-group, -RBDs), as.numeric)
 df_boot_rst <- left_join(df_boot_rst, df_meta)
-df_boot_rst$parent_group2 <- factor(df_boot_rst$parent_group2, levels=parent_groups_all)
-df_boot_rst <- df_boot_rst %>% arrange(parent_group2)
+df_boot_rst$parent_group3 <- factor(df_boot_rst$parent_group3, levels=parent_groups_all)
+df_boot_rst <- df_boot_rst %>% arrange(parent_group3)
 df_boot_rst$group <- factor(df_boot_rst$group, levels=unique(df_boot_rst$group))
 df_boot_rst$group_rename <- factor(df_boot_rst$group_rename, levels=unique(df_boot_rst$group_rename))
 
-colors_t <- scico(length(unique(df_boot_rst$parent_group2)), palette = 'batlow')
+colors_t <- scico(length(unique(df_boot_rst$parent_group3)), palette = 'batlow')
 
 p0 <- ggplot(df_boot_rst, aes(x=group)) +
 	# geom_point(aes())+
-	geom_pointrange(aes(y=e_mean_res, ymin=ci_mean_res_low, ymax=ci_mean_res_high, fill=parent_group2), size=0.8, shape=21, stroke=0.6)+
+	geom_pointrange(aes(y=e_mean_res, ymin=ci_mean_res_low, ymax=ci_mean_res_high, fill=parent_group3), size=0.8, shape=21, stroke=0.6)+
 	# geom_point(aes(y=e_mean_pos_res), size=2, shape=21)+
 	scale_x_discrete(expand=c(0,1.5), drop=F) +
 	ylab("Average %inhibition of responses")+
@@ -380,7 +382,7 @@ ggsave("../results/Mean_inhibition_responses_seperate.pdf", width = 12, height=6
 
 p1 <- ggplot(df_boot_rst, aes(x=group)) +
 	# geom_point(aes())+
-	geom_pointrange(aes(y=e_mean_pos_res, ymin=ci_mean_pos_res_low, ymax=ci_mean_pos_res_high, fill=parent_group2), size=0.8, shape=21, stroke=0.6)+
+	geom_pointrange(aes(y=e_mean_pos_res, ymin=ci_mean_pos_res_low, ymax=ci_mean_pos_res_high, fill=parent_group3), size=0.8, shape=21, stroke=0.6)+
 	# geom_point(aes(y=e_mean_pos_res), size=2, shape=21)+
 	scale_x_discrete(expand=c(0,1.5), drop=F) +
 	ylab("Average %inhibition of positive responses")+
@@ -396,7 +398,7 @@ ggsave("../results/Mean_inhibition_positive_responses_seperate.pdf", width = 12,
 
 p2 <- ggplot(df_boot_rst, aes(x=group)) +
 	# geom_point(aes())+
-	geom_pointrange(aes(y=e_hs, ymin=ci_hs_low, ymax=ci_hs_high, fill=parent_group2), size=0.8, shape=21, stroke=0.6)+
+	geom_pointrange(aes(y=e_hs, ymin=ci_hs_low, ymax=ci_hs_high, fill=parent_group3), size=0.8, shape=21, stroke=0.6)+
 	scale_x_discrete(expand=c(0,1.5), drop=F) +
 	ylab("Shannon entropy")+
 	scale_fill_manual(name="Group", values=colors_t)+
@@ -410,7 +412,7 @@ ggsave("../results/hs_seperate.pdf", width = 12, height=6)
 
 p3 <- ggplot(df_boot_rst, aes(x=group)) +
 	# geom_point(aes())+
-	geom_pointrange(aes(y=e_hpi, ymin=ci_hpi_low, ymax=ci_hpi_high, fill=parent_group2), size=0.8, shape=21, stroke=0.6)+
+	geom_pointrange(aes(y=e_hpi, ymin=ci_hpi_low, ymax=ci_hpi_high, fill=parent_group3), size=0.8, shape=21, stroke=0.6)+
 	scale_x_discrete(expand=c(0,1.5), drop=F) +
 	ylab(expression("RBD cross-reactivity ("~pi~")"))+
 	scale_fill_manual(name="Group", values=colors_t)+
@@ -483,13 +485,16 @@ df_tmp_freq %>% group_by(group) %>% summarise(hs=sum(-p*log(p)), hpi=1-(sum(N*(N
 
 
 # Two dimensional illustration of the "Response fitness"
-colors_t <- scico(length(unique(df_boot_rst$parent_group2)), palette = 'batlow')
-colors_t <- c("#000000", "#e41a1c","#377eb8","#4daf4a","#984ea3","#ff7f00", "#a65628","#f781bf","#999999") # colorbrewer2
+# colors_t <- scico(length(unique(df_boot_rst$parent_group3)), palette = 'batlow')
+# colors_t <- c("#000000", "#e41a1c","#377eb8","#4daf4a","#984ea3","#ff7f00", "#a65628","#f781bf","#999999") # colorbrewer2
+colors_t <- unique(df_meta$hex_code)
+colors_t <- colors_t[!is.na(colors_t)]
+colors_t <- paste0("#", colors_t)
 
 plot_2d <- function(df, x_var, y_var) {
 	# x_var = "mean_pos_res"
 	# y_var = "hpi"
-	x_lab <- ifelse(grepl("pos", x_var), "Average %inhibition of positive responses", "Average %inhibition of responses")
+	x_lab <- ifelse(grepl("pos", x_var), "Average %inhibition (positive responses)", "Average %inhibition")
 
 	x_e <- paste0("e_", x_var)
 	y_e <- paste0("e_", y_var)
@@ -499,17 +504,25 @@ plot_2d <- function(df, x_var, y_var) {
 	y_ci_h <- paste0("ci_", y_var, "_high")
 	
 	ggplot(df)+
-		geom_segment(aes_string(x=x_e, xend=x_e, y=y_ci_l, yend=y_ci_h, color="parent_group2"), alpha=0.6, size=0.5)+
-		geom_segment(aes_string(x=x_ci_l, xend=x_ci_h, y=y_e, yend=y_e, color="parent_group2"), alpha=0.6, size=0.5)+
-		geom_point(aes_string(x=x_e, y=y_e, color="parent_group2"), alpha=0.8, shape=1, size=2, data=. %>% filter(open_circle))+
-		geom_point(aes_string(x=x_e, y=y_e, color="parent_group2", fill="parent_group2"), alpha=0.8, shape=16, size=2, data=. %>% filter(!open_circle), show.legend=FALSE)+
-		geom_text_repel(aes_string(x=x_e, y=y_e, color="parent_group2", label="group_rename"), bg.color = "white", bg.r = 0.05, size=2, segment.size=0.3, segment.alpha=0.9, segment.color="black", arrow = arrow(length = unit(0.01, "npc")), point.padding=0.28, box.padding=0.45, show.legend=FALSE, max.overlaps = Inf, force=10)+
-		scale_fill_manual(name="Group", values=colors_t)+
-		scale_color_manual(name="Group", values=colors_t)+
+		geom_segment(aes_string(x=x_e, xend=x_e, y=y_ci_l, yend=y_ci_h, color="parent_group3"), alpha=0.6, size=0.5)+
+		geom_segment(aes_string(x=x_ci_l, xend=x_ci_h, y=y_e, yend=y_e, color="parent_group3"), alpha=0.6, size=0.5)+
+		geom_point(aes_string(x=x_e, y=y_e, color="parent_group3"), alpha=0.8, shape=1, size=2, data=. %>% filter(open_circle))+
+		geom_point(aes_string(x=x_e, y=y_e, color="parent_group3", fill="parent_group3"), alpha=0.8, shape=16, size=2, data=. %>% filter(!open_circle), show.legend=FALSE)+
+		geom_text_repel(aes_string(x=x_e, y=y_e, color="parent_group3", label="label"), bg.color = "white", bg.r = 0.05, size=2, segment.size=0.3, segment.alpha=0.9, segment.color="black", arrow = arrow(length = unit(0.01, "npc")), point.padding=0.28, box.padding=0.45, show.legend=FALSE, max.overlaps = Inf, force=10)+
+		scale_fill_manual(name="Group", values=colors_t, labels = paste("<span style='color:",
+                                   colors_t,
+                                   "'>",
+                                   unique(parent_groups_all),
+                                   "</span>"))+
+		scale_color_manual(name="Group", values=colors_t, labels = paste("<span style='color:",
+                                   colors_t,
+                                   "'>",
+                                   unique(parent_groups_all),
+                                   "</span>"))+
 		ylab(expression("RBD cross-reactivity ("~pi~")"))+
 		xlab(x_lab)+
 		theme_bw()+
-		theme(legend.position = "top")+
+		theme(legend.position = "top", legend.text = element_markdown())+
 		guides(fill=guide_legend(ncol=3,byrow=F),color=guide_legend(ncol=3,byrow=F))+
 		NULL
 }
