@@ -1,6 +1,7 @@
 library(tidyverse)
 library(boot)
 library(patchwork)
+library(blandr)
 
 df_meta <- read_csv("../data/sample_groups.csv")
 df_meta <- df_meta %>% filter(!grepl("Don’t work on these", note))
@@ -95,6 +96,7 @@ lapply(unique(RBD_all), function(this_RBD){
 	experiments_pairs_i <- combn(experiments_all_i, 2)
 	plots_i <- apply(experiments_pairs_i, 2, function(pair){
 		# pair <- c("PRNT_50", "beads")
+		# pair <- c("sVNT", "beads")
 		print(pair)
 		
 		var1 <- paste0(this_RBD, "_", pair[1])
@@ -112,7 +114,7 @@ lapply(unique(RBD_all), function(this_RBD){
 		rst_boot_ci <- boot.ci(rst_boot, type="perc")
 		text_i <- paste0("r = ", round(mean(rst_boot$t),2), "\n", "95% CI = ", round(rst_boot_ci$percent[4],2), "~", round(rst_boot_ci$percent[5],2))
 
-		## plot
+		## plot for correlation
 		colors_t_i <- colors_t[names(colors_t) %in% unique(df_tmp_bind_filter$parent_group2)]
 		p_i <- ggplot(df_tmp_bind_filter, aes_string(x=var1, y=var2))+
 			geom_point(aes_string(color="parent_group2"), alpha=0.8, shape=1, size=2, data=. %>% filter(open_circle))+
@@ -147,6 +149,17 @@ lapply(unique(RBD_all), function(this_RBD){
 
 		p_i_out <- p_i + theme(legend.position = "none")
 		ggsave(paste0("../results/cor_",this_RBD, "_", label1, "_", label2, ".pdf"), plot=p_i_out, width=6, height=6)
+
+		## plot for Bland Altman analyses 
+		if(!grepl("PRNT", var1)){
+			response1 <- df_tmp_bind_filter[[var1]]
+			response2 <- df_tmp_bind_filter[[var2]]
+			p_bla <- blandr.draw(response1, response2)
+			p_bla <- p_bla+ylab(paste0(label1, " - ", label2))
+			ggsave(paste0("../results/Bland_Altman_",this_RBD, "_", label1, "_", label2, ".pdf"), plot=p_bla, width=6, height=6)
+			blandr.output.text(response1, response2)
+		}
+		
 
 		p_i <- p_i + ggtitle(LETTERS[i])
 		plots <<- c(plots, list(p_i))
