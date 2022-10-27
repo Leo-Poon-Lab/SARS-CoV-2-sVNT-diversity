@@ -551,3 +551,23 @@ p_2d_out_all_res <- (p_scov2_all_res+ggtitle("A (SARS-CoV-2)"))/(p_sarbeco_all_r
 ggsave("../results/2D_all_res_hpi_combined.pdf", width = 8, height=10)
 
 
+# cal point to roor distance
+df_boot_rst0 <- read_tsv("../results/df_boot_rst_scov2.tsv")
+df_boot_rst0$RBDs <- "SARS-CoV-2"
+df_boot_rst1 <- read_tsv("../results/df_boot_rst_sarbecov.tsv")
+df_boot_rst1$RBDs <- "Sarbecoviruses"
+df_boot_rst <- bind_rows(df_boot_rst0, df_boot_rst1)
+df_boot_rst <- df_boot_rst %>% mutate_at(vars(-group, -RBDs), as.numeric)
+
+df_boot_rst <- left_join(df_boot_rst, df_meta)
+df_boot_rst$parent_group3 <- factor(df_boot_rst$parent_group3, levels=parent_groups_all)
+df_boot_rst <- df_boot_rst %>% arrange(parent_group3)
+df_boot_rst$group <- factor(df_boot_rst$group, levels=unique(df_boot_rst$group))
+df_boot_rst$group_rename <- factor(df_boot_rst$group_rename, levels=unique(df_boot_rst$group_rename))
+
+df_boot_rst_tmp <- df_boot_rst
+df_boot_rst_tmp$ci_mean_res_low[df_boot_rst_tmp$ci_mean_res_low<0] <- 0
+df_boot_rst_tmp$ci_hpi_low[df_boot_rst_tmp$ci_hpi_low<0] <- 0
+
+df_dist <- df_boot_rst_tmp %>% group_by(RBDs, parent_group3, label, hex_code) %>% select(e_mean_res, e_hpi, starts_with("ci_mean_res"), starts_with("ci_hpi")) %>% mutate_at(vars(contains("mean_res")), function(x) {x/100}) %>% mutate(dist_point_root=sqrt(e_mean_res^2+e_hpi^2), ci_dist_point_root_low=sqrt(ci_mean_res_low^2+ci_hpi_low^2),  ci_dist_point_root_high=sqrt(ci_mean_res_high^2+ci_hpi_high^2),)
+writexl::write_xlsx(df_dist, "../results/df_dist_root_point.xlsx")
